@@ -9,6 +9,7 @@ library(plotly)
 library(tidyverse)
 
 source('./src/Panel1.R')
+source('./src/Panel2.R')
 source('./src/Panel3.R')
 
 # dataset
@@ -111,6 +112,7 @@ app$layout(
           dbcTab(
             list(
               
+              get_panel2_content()
               
             ), label = 'Panel2'
           ),
@@ -387,6 +389,212 @@ app %>% add_callback(
 
 
 
+# Panel2 - callbacks
+## Panel2 - dropdown2 need dropdown1 has a value firstly
+app$callback(
+  output(id = 'p2_dd_team', 'options'),
+  list(input(id = 'p2_dd_league', 'value')),
+  function(p2_dd_league_value) {
+    
+    temp_league_ids <- list()
+    if (p2_dd_league_value == 'ALL') {
+      temp_league_ids <- league_ids
+    } else {
+      temp_league_ids <- p2_dd_league_value
+    }
+    
+    df_selected <- df[df$league_id %in% temp_league_ids,]
+    specified_teams <- unique(df_selected$team_name)
+    
+    options <- c(list(list(label = "ALL", value = "ALL") ), lapply(specified_teams, function(team_name) list(label = team_name, value = team_name_id[[team_name]])))
+    
+    if(length(temp_league_ids) == 0){
+      options <- list()
+    }
+    
+    return(options)
+  }
+)
+
+
+
+## Panel2 - dropdown3 need dropdown1 & dropdown2 have value firstly
+app %>% add_callback(
+  # output('p2_dd_player', 'options'),
+  list(
+    output('p2_dd_player', 'options'),
+    output('p2_dd_player', 'value')
+  ),
+  list(
+    input('p2_dd_league', 'value'),
+    input('p2_dd_team', 'value')
+  ),
+  function(p2_dd_league_value, p2_dd_team_value ){
+    
+    temp_league_ids <- list()
+    if (p2_dd_league_value == 'ALL') {
+      temp_league_ids <- league_ids
+    } else {
+      temp_league_ids <- p2_dd_league_value
+    }
+    
+    temp_team_ids <- list()
+    if (p2_dd_team_value == 'ALL') {
+      temp_team_ids <- team_ids
+    } else {
+      temp_team_ids <- p2_dd_team_value
+    }
+    
+    df_selected <- df %>% 
+      filter(league_id %in% temp_league_ids & team_id %in% temp_team_ids)
+    
+    specified_players <- unique(df_selected$player_name)
+    
+    options <- list()
+    for (player_name in specified_players) {
+      label <- player_name
+      value <- player_name_id[[player_name]]
+      options <- append(options, list(list(label = label, value = value)))
+    }
+    
+    if(length(temp_league_ids) == 0 |
+       length(temp_team_ids) == 0 ){
+      options <- list()
+    }
+    
+    # return(options)
+    return(list(options, NULL) )
+    
+  }
+)
+
+
+## Panel2 - plots
+app %>% add_callback(
+  list(
+    output('p2_Iframe_1', 'figure'),
+    output('p2_Iframe_2', 'figure'),
+    output('p2_Iframe_3', 'figure'),
+    output('p2_Iframe_4', 'figure')
+  ),
+  
+  list(
+    input('p2_rs_year', 'value'),
+    input('p2_dd_league', 'value'),
+    input('p2_dd_team', 'value'),
+    input('p2_dd_player', 'value'),
+    input('p2_dd_stat1', 'value'),
+    input('p2_dd_stat2', 'value'),
+    input('p2_dd_stat3', 'value'),
+    input('p2_dd_stat4', 'value')
+  ),
+  function(p2_rs_year_value, p2_dd_league_value, p2_dd_team_value, p2_dd_player_value,
+           p2_dd_stat1_value, p2_dd_stat2_value, p2_dd_stat3_value, p2_dd_stat4_value){
+    
+    # print('\nnew turn')
+    
+    # args
+    years <- p2_rs_year_value[[1]]:p2_rs_year_value[[2]]
+    
+    if (p2_dd_league_value == "ALL") {
+      temp_league_ids <- league_ids
+    } else {
+      temp_league_ids <- c(p2_dd_league_value)
+    }
+    
+    if (p2_dd_team_value == "ALL") {
+      temp_team_ids <- df %>%
+        filter(league_id %in% temp_league_ids) %>%
+        select(team_id) %>%
+        distinct() %>%
+        pull()
+    } else {
+      temp_team_ids <- c(p2_dd_team_value)
+    }
+    # print(temp_team_ids)
+    
+    if(is.null(p2_dd_player_value)){
+      temp_player_ids <- list()
+    } else {
+      temp_player_ids <- p2_dd_player_value
+    }
+    # print(temp_player_ids)
+    
+    
+    
+    df_selected <- df %>%
+      filter(`team_id` %in% temp_team_ids & `league_id` %in% temp_league_ids & `league_season` %in% years & `player_id` %in% temp_player_ids)
+    # print(nrow(df_selected))
+    
+    # print(length(temp_league_ids))
+    # print(length(temp_team_ids))
+    # print(length(temp_player_ids))
+    # print(temp_player_ids)
+    if(length(temp_player_ids) == 0 |
+       length(temp_team_ids) == 0 |
+       length(temp_league_ids) == 0 ) {
+      chart1 <- ggplotly(ggplot() + theme_void())
+      chart2 <- ggplotly(ggplot() + theme_void())
+      chart3 <- ggplotly(ggplot() + theme_void())
+      chart4 <- ggplotly(ggplot() + theme_void())
+      # print('空')
+    } else if(is.null(temp_player_ids[[1]]) |
+              is.null(temp_team_ids[[1]]) |
+              is.null(temp_league_ids[[1]])){
+      chart1 <- ggplotly(ggplot() + theme_void())
+      chart2 <- ggplotly(ggplot() + theme_void())
+      chart3 <- ggplotly(ggplot() + theme_void())
+      chart4 <- ggplotly(ggplot() + theme_void())
+      # print('空')
+    } else {
+      # print('不空')
+      
+      # plot1
+      y_axis1 <- p2_dd_stat1_value
+      chart1 <- ggplot(df_selected, aes(x = league_season, y = !!sym(y_axis1), color = player_name)) +
+        geom_line() +
+        scale_y_continuous(name = str_to_title(str_replace(y_axis1, '_', ' '))) +
+        scale_x_continuous(name = 'League Season', breaks = years) +
+        labs(title = paste(str_to_title(str_replace(y_axis1, '_', ' ')), 'by League Season'))
+      chart1 <- ggplotly(chart1)
+      
+      # plot2
+      y_axis2 <- p2_dd_stat2_value
+      chart2 <- ggplot(df_selected, aes(x = league_season, y = !!sym(y_axis2), color = player_name)) +
+        geom_line() +
+        scale_y_continuous(name = str_to_title(str_replace(y_axis2, '_', ' '))) +
+        scale_x_continuous(name = 'League Season', breaks = years) +
+        labs(title = paste(str_to_title(str_replace(y_axis2, '_', ' ')), 'by League Season'))
+      chart2 <- ggplotly(chart2)
+      
+      # plot3
+      y_axis3 <- p2_dd_stat3_value
+      chart3 <- ggplot(df_selected, aes(x = league_season, y = !!sym(y_axis3), color = player_name)) +
+        geom_line() +
+        scale_y_continuous(name = str_to_title(str_replace(y_axis3, '_', ' '))) +
+        scale_x_continuous(name = 'League Season', breaks = years) +
+        labs(title = paste(str_to_title(str_replace(y_axis3, '_', ' ')), 'by League Season'))
+      chart3 <- ggplotly(chart3)
+      
+      # plot4
+      y_axis4 <- p2_dd_stat4_value
+      chart4 <- ggplot(df_selected, aes(x = league_season, y = !!sym(y_axis4), color = player_name)) +
+        geom_line() +
+        scale_y_continuous(name = str_to_title(str_replace(y_axis4, '_', ' '))) +
+        scale_x_continuous(name = 'League Season', breaks = years) +
+        labs(title = paste(str_to_title(str_replace(y_axis4, '_', ' ')), 'by League Season'))
+      chart4 <- ggplotly(chart4)
+      
+    }
+    
+    return(list(chart1, chart2, chart3, chart4))
+    
+    
+  }
+)
+
+
+
 # Panel3 - callbacks
 ## Panel3 - dropdown2 need dropdown1 has a value firstly
 app$callback(
@@ -518,8 +726,8 @@ app$callback(
 
 
 
-# app$run_server(host = '0.0.0.0')
-app$run_server()
+app$run_server(host = '0.0.0.0')
+# app$run_server()
 
 
 
