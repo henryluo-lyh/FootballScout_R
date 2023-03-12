@@ -1,5 +1,5 @@
 # FootballScout 
-# https://footballscout-app.herokuapp.com/
+# https://footballscout-r.herokuapp.com/
 
 ## Description & sketch
 
