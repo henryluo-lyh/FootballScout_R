@@ -116,7 +116,7 @@ get_panel3_content <- function(){
 
 app$layout(
   
-  get_panel2_content()
+  get_panel3_content()
   
 )
 
